@@ -10,11 +10,16 @@ defmodule EvilCorp.Identity do
     Repo
   }
 
+  require Logger
+
   def signup(email, name, password) do
     changeset = User.signup_changeset(%User{}, %{name: name, email: email, password: password})
 
     with {:ok, user} <- Repo.insert(changeset) do
       send_welcome_email(user)
+      Mailchimp.add_to_list(user.email, user.name)
+      Mixpanel.track(user.id, "$signup")
+      Mixpanel.update_profile(user.id, user.email)
       {:ok, user}
     end
   end

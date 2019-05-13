@@ -4,9 +4,9 @@ defmodule EvilCorp.Identity do
   """
 
   alias EvilCorp.{
+    EventDispatcher,
     Identity.User,
-    Identity.UserEmail,
-    Mailer,
+    Identity.Events.UserSignedUp,
     Repo
   }
 
@@ -16,17 +16,13 @@ defmodule EvilCorp.Identity do
     changeset = User.signup_changeset(%User{}, %{name: name, email: email, password: password})
 
     with {:ok, user} <- Repo.insert(changeset) do
-      send_welcome_email(user)
-      Mailchimp.add_to_list(user.email, user.name)
-      Mixpanel.track(user.id, "$signup")
-      Mixpanel.update_profile(user.id, user.email)
+      EventDispatcher.dispatch(%UserSignedUp{
+        user_id: user.id,
+        name: user.name,
+        email: user.email
+      })
+
       {:ok, user}
     end
-  end
-
-  defp send_welcome_email(user) do
-    user.email
-    |> UserEmail.welcome_email(user.name)
-    |> Mailer.deliver_now()
   end
 end

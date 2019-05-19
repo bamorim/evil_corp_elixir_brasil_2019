@@ -23,6 +23,7 @@ defmodule EvilCorp.DataCase do
       import Ecto.Changeset
       import Ecto.Query
       import EvilCorp.DataCase
+      import EvilCorp.JobAssertions
       import Mock
     end
   end

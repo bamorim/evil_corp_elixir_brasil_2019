@@ -7,14 +7,14 @@ defmodule EvilCorp.Application do
 
   def start(_type, _args) do
     # List all child processes to be supervised
-    children = [
-      # Start the Ecto repository
-      EvilCorp.Repo,
-      # Start the endpoint when the application starts
-      EvilCorpWeb.Endpoint
-      # Starts a worker by calling: EvilCorp.Worker.start_link(arg)
-      # {EvilCorp.Worker, arg},
-    ]
+    children =
+      [
+        db: EvilCorp.Repo,
+        web: EvilCorpWeb.Endpoint,
+        worker: {Oban, Application.get_env(:evil_corp, Oban)}
+      ]
+      |> Enum.filter(fn {key, _} -> key in components_to_start() end)
+      |> Enum.map(fn {_, spec} -> spec end)
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
@@ -28,4 +28,7 @@ defmodule EvilCorp.Application do
     EvilCorpWeb.Endpoint.config_change(changed, removed)
     :ok
   end
+
+  defp components_to_start,
+    do: Application.get_env(:evil_corp, :components_to_start, [:db, :web, :worker])
 end

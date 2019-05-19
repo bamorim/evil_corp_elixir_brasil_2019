@@ -42,6 +42,7 @@ defmodule EvilCorp.MixProject do
       {:jason, "~> 1.0"},
       {:plug_cowboy, "~> 2.0"},
       {:bamboo, "~> 1.2"},
+      {:oban, "~> 0.2"},
       {:mock, "~> 0.3.0", only: :test}
     ]
   end

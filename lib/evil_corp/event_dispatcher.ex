@@ -6,7 +6,9 @@ defmodule EvilCorp.EventDispatcher do
   @spec dispatch(map()) :: :ok
   def dispatch(event) do
     for handler <- handlers() do
-      :ok = handler.handle(event)
+      Task.async(fn ->
+        :ok = handler.handle(event)
+      end)
     end
 
     :ok

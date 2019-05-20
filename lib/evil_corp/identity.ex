@@ -5,6 +5,7 @@ defmodule EvilCorp.Identity do
 
   alias EvilCorp.{
     EventDispatcher,
+    EventStore,
     Identity.User,
     Identity.Events.UserSignedUp,
     Repo
@@ -16,11 +17,14 @@ defmodule EvilCorp.Identity do
     changeset = User.signup_changeset(%User{}, %{name: name, email: email, password: password})
 
     with {:ok, user} <- Repo.insert(changeset) do
-      EventDispatcher.dispatch(%UserSignedUp{
+      event = %UserSignedUp{
         user_id: user.id,
         name: user.name,
         email: user.email
-      })
+      }
+
+      EventStore.persist(event)
+      EventDispatcher.dispatch(event)
 
       {:ok, user}
     end

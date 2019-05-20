@@ -3,6 +3,7 @@ defmodule EvilCorp.Identity.SignupTest do
 
   alias EvilCorp.{
     EventDispatcher,
+    EventStore,
     Identity,
     Repo
   }
@@ -36,6 +37,18 @@ defmodule EvilCorp.Identity.SignupTest do
           name: ctx.name
         })
       )
+    end
+
+    test "it should register the event on the database", ctx do
+      {:ok, user} = Identity.signup(ctx.email, ctx.name, ctx.password)
+
+      assert [
+               %UserSignedUp{
+                 user_id: user.id,
+                 email: ctx.email,
+                 name: ctx.name
+               }
+             ] == EventStore.all()
     end
   end
 end

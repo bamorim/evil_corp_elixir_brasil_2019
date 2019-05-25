@@ -2,27 +2,18 @@ defmodule EvilCorp.Identity.SignupTest do
   use EvilCorp.DataCase, async: false
 
   alias EvilCorp.{
+    EventDispatcher,
     Identity,
     Repo
   }
 
   alias Identity.{
-    User,
-    UserEmail
+    Events.UserSignedUp,
+    User
   }
 
   describe "signup/3" do
-    setup_with_mocks([
-      {Mixpanel, [],
-       [
-         track: fn _, _ -> :ok end,
-         update_profile: fn _, _ -> :ok end
-       ]},
-      {Mailchimp, [],
-       [
-         add_to_list: fn _, _ -> :ok end
-       ]}
-    ]) do
+    setup_with_mocks([{EventDispatcher, [], [dispatch: fn _ -> :ok end]}]) do
       email = "email#{Enum.random(0..9999)}@example.com"
       name = "Person #{Enum.random(0..9999)}"
       password = "password#{Enum.random(0..9999)}"
@@ -35,19 +26,16 @@ defmodule EvilCorp.Identity.SignupTest do
       assert %User{} = Repo.get(User, user.id)
     end
 
-    test "should send an email to the new user", ctx do
-      Identity.signup(ctx.email, ctx.name, ctx.password)
-      assert_delivered_email(UserEmail.welcome_email(ctx.email, ctx.name))
-    end
+    test "it should dispatch an user signed up event", ctx do
+      assert {:ok, user} = Identity.signup(ctx.email, ctx.name, ctx.password)
 
-    test "should update Mixpanel profile", ctx do
-      {:ok, user} = Identity.signup(ctx.email, ctx.name, ctx.password)
-      assert_called(Mixpanel.update_profile(user.id, ctx.email))
-    end
-
-    test "should register a signup event on Mixpanel", ctx do
-      {:ok, user} = Identity.signup(ctx.email, ctx.name, ctx.password)
-      assert_called(Mixpanel.track(user.id, "$signup"))
+      assert_called(
+        EventDispatcher.dispatch(%UserSignedUp{
+          user_id: user.id,
+          email: ctx.email,
+          name: ctx.name
+        })
+      )
     end
   end
 end

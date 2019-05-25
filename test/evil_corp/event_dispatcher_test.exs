@@ -1,39 +1,33 @@
 defmodule EvilCorp.EventDispatcherTest do
-  use ExUnit.Case, async: false
-  import Mock
+  use EvilCorp.DataCase, async: false
+
+  import EvilCorp.EventSerialization, only: [serialize: 1]
 
   alias EvilCorp.{
     EventDispatcher,
     Identity.EventHandlers
   }
 
+  @handlers [
+    EventHandlers.SendWelcomeEmailWhenUserSignedUp,
+    EventHandlers.AddToMailchimpListWhenUserSignedUp,
+    EventHandlers.TrackMixpanelEventWhenUserSignedUp,
+    EventHandlers.UpdateMixpanelProfileWhenUserSignedUp
+  ]
+
   describe "dispatch/1" do
-    test "it dispatches to all event dispatchers" do
-      event = %{anything: true}
-      pid = self()
+    test "it schedules one execution for every existing handler" do
+      event = %{any: :thing}
+      serialized_event = serialize(event)
+      EventDispatcher.dispatch(event)
 
-      mock_for = fn mod ->
-        {mod, [],
-         [
-           handle: fn evt ->
-             send(pid, {:handled, mod, evt})
-             :ok
-           end
-         ]}
-      end
+      for handler <- @handlers do
+        handler_name = Atom.to_string(handler)
 
-      with_mocks([
-        mock_for.(EventHandlers.SendWelcomeEmailWhenUserSignedUp),
-        mock_for.(EventHandlers.AddToMailchimpListWhenUserSignedUp),
-        mock_for.(EventHandlers.TrackMixpanelEventWhenUserSignedUp),
-        mock_for.(EventHandlers.UpdateMixpanelProfileWhenUserSignedUp)
-      ]) do
-        EventDispatcher.dispatch(event)
-
-        assert_receive({:handled, EventHandlers.SendWelcomeEmailWhenUserSignedUp, ^event})
-        assert_receive({:handled, EventHandlers.AddToMailchimpListWhenUserSignedUp, ^event})
-        assert_receive({:handled, EventHandlers.TrackMixpanelEventWhenUserSignedUp, ^event})
-        assert_receive({:handled, EventHandlers.UpdateMixpanelProfileWhenUserSignedUp, ^event})
+        assert_has_job(%{
+          "event" => ^serialized_event,
+          "handler" => ^handler_name
+        })
       end
     end
   end

@@ -10,19 +10,30 @@ defmodule EvilCorp.EventDispatcherTest do
   describe "dispatch/1" do
     test "it dispatches to all event dispatchers" do
       event = %{anything: true}
+      pid = self()
+
+      mock_for = fn mod ->
+        {mod, [],
+         [
+           handle: fn evt ->
+             send(pid, {:handled, mod, evt})
+             :ok
+           end
+         ]}
+      end
 
       with_mocks([
-        {EventHandlers.SendWelcomeEmailWhenUserSignedUp, [], [handle: fn _ -> :ok end]},
-        {EventHandlers.AddToMailchimpListWhenUserSignedUp, [], [handle: fn _ -> :ok end]},
-        {EventHandlers.TrackMixpanelEventWhenUserSignedUp, [], [handle: fn _ -> :ok end]},
-        {EventHandlers.UpdateMixpanelProfileWhenUserSignedUp, [], [handle: fn _ -> :ok end]}
+        mock_for.(EventHandlers.SendWelcomeEmailWhenUserSignedUp),
+        mock_for.(EventHandlers.AddToMailchimpListWhenUserSignedUp),
+        mock_for.(EventHandlers.TrackMixpanelEventWhenUserSignedUp),
+        mock_for.(EventHandlers.UpdateMixpanelProfileWhenUserSignedUp)
       ]) do
         EventDispatcher.dispatch(event)
 
-        assert_called(EventHandlers.SendWelcomeEmailWhenUserSignedUp.handle(event))
-        assert_called(EventHandlers.AddToMailchimpListWhenUserSignedUp.handle(event))
-        assert_called(EventHandlers.TrackMixpanelEventWhenUserSignedUp.handle(event))
-        assert_called(EventHandlers.UpdateMixpanelProfileWhenUserSignedUp.handle(event))
+        assert_receive({:handled, EventHandlers.SendWelcomeEmailWhenUserSignedUp, ^event})
+        assert_receive({:handled, EventHandlers.AddToMailchimpListWhenUserSignedUp, ^event})
+        assert_receive({:handled, EventHandlers.TrackMixpanelEventWhenUserSignedUp, ^event})
+        assert_receive({:handled, EventHandlers.UpdateMixpanelProfileWhenUserSignedUp, ^event})
       end
     end
   end

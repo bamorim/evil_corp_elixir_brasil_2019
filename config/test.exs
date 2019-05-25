@@ -18,3 +18,6 @@ config :evil_corp, EvilCorpWeb.Endpoint,
 config :logger, level: :warn
 
 config :evil_corp, EvilCorp.Mailer, adapter: Bamboo.TestAdapter
+
+# Start only web and ecto and not the worker
+config :evil_corp, components_to_start: [:web, :db]

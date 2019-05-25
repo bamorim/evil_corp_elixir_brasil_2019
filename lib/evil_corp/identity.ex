@@ -16,7 +16,6 @@ defmodule EvilCorp.Identity do
     changeset = User.signup_changeset(%User{}, %{name: name, email: email, password: password})
 
     with {:ok, user} <- Repo.insert(changeset) do
-      Mailchimp.add_to_list(user.email, user.name)
       Mixpanel.track(user.id, "$signup")
       Mixpanel.update_profile(user.id, user.email)
       EventDispatcher.dispatch(%UserSignedUp{

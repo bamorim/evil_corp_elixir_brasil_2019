@@ -14,7 +14,8 @@ defmodule EvilCorp.EventDispatcher do
 
   defp handlers do
     [
-      EventHandlers.SendWelcomeEmailWhenUserSignedUp
+      EventHandlers.SendWelcomeEmailWhenUserSignedUp,
+      EventHandlers.AddToMailchimpListWhenUserSignedUp
     ]
   end
 end
